@@ -1,6 +1,8 @@
-import pandas as pd
+﻿import pandas as pd
 import plotly.graph_objects as go
 import dash
+import gzip
+import pickle
 from dash import dcc, html, Input, Output
 import os
 
@@ -14,7 +16,8 @@ time_periods = {
 app = dash.Dash(__name__)
 server = app.server  # Wichtig für Deployment!
 
-athlete_events = pd.read_pickle("athlete_events.pkl")
+with gzip.open("athlete_events.pkl.gz", "rb") as f:
+    athlete_events = pickle.load(f)
 
 region_options = [{'label': region, 'value': region} 
                  for region in sorted(athlete_events['region'].dropna().unique())]
@@ -200,6 +203,7 @@ if __name__ == '__main__':
 
 
 # In[ ]:
+
 
 
 
