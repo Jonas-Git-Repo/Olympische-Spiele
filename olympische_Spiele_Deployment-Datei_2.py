@@ -1,13 +1,8 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[12]:
-
-
-# ===== app.py =====
-import pandas as pd
+﻿import pandas as pd
 import plotly.graph_objects as go
 import dash
+import gzip
+import pickle
 from dash import dcc, html, Input, Output
 import os
 
