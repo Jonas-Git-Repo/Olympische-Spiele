@@ -23,7 +23,8 @@ time_periods = {
 app = dash.Dash(__name__)
 server = app.server  # Wichtig für Deployment!
 
-athlete_events = pd.read_pickle("athlete_events.pkl")
+with gzip.open("athlete_events.pkl.gz", "rb") as f:
+    athlete_events = pickle.load(f)
 
 # Layout
 region_options = [{'label': region, 'value': region} 
@@ -231,7 +232,8 @@ time_periods = {
     '1948–1992': (1948, 1992),
     '1994–2016': (1994, 2016)
 }
-athlete_events = pd.read_pickle("athlete_events.pkl")
+with gzip.open("athlete_events.pkl.gz", "rb") as f:
+    athlete_events = pickle.load(f)
 region_options = sorted(athlete_events['region'].dropna().unique())
 
 # Widgets
