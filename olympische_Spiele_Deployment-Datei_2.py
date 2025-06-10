@@ -50,19 +50,6 @@ app.layout = html.Div([
             options=[{'label': '👥 Alle', 'value': 'Alle'}, {'label': '👨 Männer', 'value': 'M'}, {'label': '👩 Frauen', 'value': 'F'}],
             value='Alle'
         ),
-        html.Label("Länder (mehrfach):"),
-        dcc.Dropdown(
-            id='multi-country-dropdown',
-            options=region_options,
-            value=['Germany', 'USA'],
-            multi=True
-        ),
-        html.Label("Medaillentyp:"),
-        dcc.Dropdown(
-            id='medal-dropdown',
-            options=[{'label': m, 'value': m} for m in ['Alle', 'Gold', 'Silver', 'Bronze']],
-            value='Alle'
-        ),
     ], style={'columnCount': 2}),
 
     dcc.Tabs([
@@ -73,6 +60,21 @@ app.layout = html.Div([
             dcc.Graph(id='heatmap-chart')
         ]),
         dcc.Tab(label='🌍 Ländervergleich', children=[
+            html.Div(id="country-comparison-filters", children=[
+                html.Label("Länder (mehrfach):"),
+                dcc.Dropdown(
+                    id='multi-country-dropdown',
+                    options=region_options,
+                    value=['Germany', 'USA'],
+                    multi=True
+                ),
+                html.Label("Medaillentyp:"),
+                dcc.Dropdown(
+                    id='medal-dropdown',
+                    options=[{'label': m, 'value': m} for m in ['Alle', 'Gold', 'Silver', 'Bronze']],
+                    value='Alle'
+                )
+            ], style={'columnCount': 2, 'marginBottom': '20px'}),
             dcc.Graph(id='country-comparison-chart')
         ])
     ])
@@ -119,7 +121,9 @@ def update_medals_chart(period, season, country, sport, gender):
     fig.update_layout(
         barmode='stack',
         title=f"{country} – {sport if sport != 'Alle' else 'alle Sportarten'} ({season}, {period})",
-        xaxis_title='Jahr', yaxis_title='Medaillen'
+        xaxis_title='Jahr',
+        yaxis_title='Medaillen',
+        yaxis=dict(tickformat=".0f")
     )
     return fig
 
@@ -147,11 +151,14 @@ def update_heatmap(period, season, country, gender):
     matrix = df.groupby(['sport', 'year']).size().unstack(fill_value=0)
     fig = go.Figure(data=go.Heatmap(
         z=matrix.values, x=matrix.columns, y=matrix.index,
-        colorscale='YlOrBr', colorbar=dict(title='Medaillen')
+        colorscale='YlOrBr',
+        colorbar=dict(title='Medaillen'),
+        hovertemplate='Disziplin: %{y}<br>Jahr: %{x}<br>Anzahl: %{z}<extra></extra>'
     ))
     fig.update_layout(
         title=f"Heatmap – {country} ({season}, {period})",
-        xaxis_title='Jahr', yaxis_title='Sportart'
+        xaxis_title='Jahr',
+        yaxis_title='Sportart'
     )
     return fig
 
@@ -189,9 +196,83 @@ def update_country_comparison(period, season, countries, medal_type, gender):
     )])
     fig.update_layout(
         title=f"Medaillenvergleich ({medal_type}) – {season} {period}" + (f", Geschlecht: {gender}" if gender != 'Alle' else ""),
-        xaxis_title="Land", yaxis_title="Anzahl Medaillen"
+        xaxis_title="Land",
+        yaxis_title="Anzahl Medaillen",
+        yaxis=dict(tickformat=".0f")
     )
     return fig
+    # Dropdown-Optionen für Sportarten
+sportarten = athlete_events['sport'].dropna().unique()
+sport_options = [{'label': s, 'value': s} for s in sorted(sportarten)]
+
+app.layout = html.Div([
+    html.H2("Olympische Sportarten: Interessante Fakten"),
+    dcc.Dropdown(
+        id='sportart-dropdown',
+        options=sport_options,
+        value=sport_options[0]['value'],
+        clearable=False,
+        style={'width': '60%'}
+    ),
+    html.Br(),
+    html.Div(id='sportart-fakten-output', style={'fontSize': '18px'})
+])
+
+
+@app.callback(
+    Output('sportart-fakten-output', 'children'),
+    Input('sportart-dropdown', 'value')
+)
+def sportart_fakten(sportart):
+    df = athlete_events[athlete_events['sport'] == sportart]
+
+    # Wie oft wurde die Sportart ausgetragen? (Jahre mit Wettbewerben)
+    austragungen = df['year'].nunique()
+    first_year = df['year'].min()
+    last_year = df['year'].max()
+
+    # Sportler mit den meisten Teilnahmen
+    teilnahmen_athlet = df.groupby('name').size()
+    if not teilnahmen_athlet.empty:
+        top_athlet = teilnahmen_athlet.idxmax()
+        top_athlet_count = teilnahmen_athlet.max()
+    else:
+        top_athlet = "Keine Daten"
+        top_athlet_count = 0
+
+    # Land mit den meisten Teilnahmen
+    teilnahmen_land = df.groupby('region').size()
+    if not teilnahmen_land.empty:
+        top_land = teilnahmen_land.idxmax()
+        top_land_count = teilnahmen_land.max()
+    else:
+        top_land = "Keine Daten"
+        top_land_count = 0
+
+    # Anzahl verschiedener Athleten und Länder
+    unique_athletes = df['name'].nunique()
+    unique_countries = df['region'].nunique()
+
+    # Weitere Fakten: Häufigste Disziplin innerhalb der Sportart
+    if 'event' in df.columns:
+        top_event = df['event'].value_counts().idxmax()
+        top_event_count = df['event'].value_counts().max()
+    else:
+        top_event = "Keine Daten"
+        top_event_count = 0
+
+    return html.Div([
+        html.H4(f"Fakten zur Sportart: {sportart}"),
+        html.Ul([
+            html.Li(f"Anzahl der Olympischen Spiele mit {sportart}: {austragungen} ({first_year}–{last_year})"),
+            html.Li(f"Meistteilnehmender Sportler: {top_athlet} ({top_athlet_count} Teilnahmen)"),
+            html.Li(f"Land mit den meisten Teilnahmen: {top_land} ({top_land_count} Teilnahmen)"),
+            html.Li(f"Anzahl verschiedener Athleten: {unique_athletes}"),
+            html.Li(f"Anzahl teilnehmender Länder: {unique_countries}"),
+            html.Li(f"Häufigste Disziplin: {top_event} ({top_event_count} Teilnahmen)")
+        ])
+    ])
+
 
 # App starten
 if __name__ == '__main__':
