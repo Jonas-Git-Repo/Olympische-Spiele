@@ -50,19 +50,6 @@ app.layout = html.Div([
             options=[{'label': '👥 Alle', 'value': 'Alle'}, {'label': '👨 Männer', 'value': 'M'}, {'label': '👩 Frauen', 'value': 'F'}],
             value='Alle'
         ),
-        html.Label("Länder (mehrfach):"),
-        dcc.Dropdown(
-            id='multi-country-dropdown',
-            options=region_options,
-            value=['Germany', 'USA'],
-            multi=True
-        ),
-        html.Label("Medaillentyp:"),
-        dcc.Dropdown(
-            id='medal-dropdown',
-            options=[{'label': m, 'value': m} for m in ['Alle', 'Gold', 'Silver', 'Bronze']],
-            value='Alle'
-        ),
     ], style={'columnCount': 2}),
 
     dcc.Tabs([
@@ -73,6 +60,21 @@ app.layout = html.Div([
             dcc.Graph(id='heatmap-chart')
         ]),
         dcc.Tab(label='🌍 Ländervergleich', children=[
+            html.Div(id="country-comparison-filters", children=[
+                html.Label("Länder (mehrfach):"),
+                dcc.Dropdown(
+                    id='multi-country-dropdown',
+                    options=region_options,
+                    value=['Germany', 'USA'],
+                    multi=True
+                ),
+                html.Label("Medaillentyp:"),
+                dcc.Dropdown(
+                    id='medal-dropdown',
+                    options=[{'label': m, 'value': m} for m in ['Alle', 'Gold', 'Silver', 'Bronze']],
+                    value='Alle'
+                )
+            ], style={'columnCount': 2, 'marginBottom': '20px'}),
             dcc.Graph(id='country-comparison-chart')
         ])
     ])
@@ -119,7 +121,9 @@ def update_medals_chart(period, season, country, sport, gender):
     fig.update_layout(
         barmode='stack',
         title=f"{country} – {sport if sport != 'Alle' else 'alle Sportarten'} ({season}, {period})",
-        xaxis_title='Jahr', yaxis_title='Medaillen'
+        xaxis_title='Jahr',
+        yaxis_title='Medaillen',
+        yaxis=dict(tickformat=".0f")
     )
     return fig
 
@@ -147,11 +151,14 @@ def update_heatmap(period, season, country, gender):
     matrix = df.groupby(['sport', 'year']).size().unstack(fill_value=0)
     fig = go.Figure(data=go.Heatmap(
         z=matrix.values, x=matrix.columns, y=matrix.index,
-        colorscale='YlOrBr', colorbar=dict(title='Medaillen')
+        colorscale='YlOrBr',
+        colorbar=dict(title='Medaillen'),
+        hovertemplate='Disziplin: %{y}<br>Jahr: %{x}<br>Anzahl: %{z}<extra></extra>'
     ))
     fig.update_layout(
         title=f"Heatmap – {country} ({season}, {period})",
-        xaxis_title='Jahr', yaxis_title='Sportart'
+        xaxis_title='Jahr',
+        yaxis_title='Sportart'
     )
     return fig
 
@@ -189,15 +196,12 @@ def update_country_comparison(period, season, countries, medal_type, gender):
     )])
     fig.update_layout(
         title=f"Medaillenvergleich ({medal_type}) – {season} {period}" + (f", Geschlecht: {gender}" if gender != 'Alle' else ""),
-        xaxis_title="Land", yaxis_title="Anzahl Medaillen"
+        xaxis_title="Land",
+        yaxis_title="Anzahl Medaillen",
+        yaxis=dict(tickformat=".0f")
     )
     return fig
 
 # App starten
 if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=8050)
-
-
-
-
-
