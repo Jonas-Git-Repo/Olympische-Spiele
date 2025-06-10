@@ -205,20 +205,6 @@ def update_country_comparison(period, season, countries, medal_type, gender):
 sportarten = athlete_events['sport'].dropna().unique()
 sport_options = [{'label': s, 'value': s} for s in sorted(sportarten)]
 
-app.layout = html.Div([
-    html.H2("Olympische Sportarten: Interessante Fakten"),
-    dcc.Dropdown(
-        id='sportart-dropdown',
-        options=sport_options,
-        value=sport_options[0]['value'],
-        clearable=False,
-        style={'width': '60%'}
-    ),
-    html.Br(),
-    html.Div(id='sportart-fakten-output', style={'fontSize': '18px'})
-])
-
-
 @app.callback(
     Output('sportart-fakten-output', 'children'),
     Input('sportart-dropdown', 'value')
