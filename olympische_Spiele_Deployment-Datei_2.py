@@ -290,33 +290,97 @@ app.layout = html.Div([
             dcc.Graph(id='country-comparison-chart')
         ])
     ]),
-    html.H2("Fakten zu Sportarten und Events", style={'marginTop': '40px'}),
+html.H2("Fakten zu Sportarten und Events", 
+            style={
+                'marginTop': '40px', 
+                'textAlign': 'center',
+                'color': '#2c3e50',
+                'fontWeight': '300',
+                'fontSize': '2.2em',
+                'marginBottom': '30px'
+            }),
+    
     html.Div([
         # Linke Spalte: Fakten zur Sportart
         html.Div([
-            html.Label("Sportart:"),
+            html.Label("🏃‍♂️ Sportart:", 
+                      style={'fontSize': '18px', 'fontWeight': '600', 'color': '#2c3e50', 'marginBottom': '10px'}),
             dcc.Dropdown(
                 id='sportart-fakten-dropdown',
                 options=sport_options,
                 value=unique_sports_de[0],
                 clearable=False,
-                style={'width': '95%'}
+                style={
+                    'width': '100%',
+                    'fontSize': '16px'
+                },
+                placeholder="Sportart auswählen..."
             ),
-            html.Div(id='sportart-fakten-output', style={'fontSize': '18px', 'marginTop': '20px'}),
-        ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+            html.Div(id='sportart-fakten-output', 
+                    style={
+                        'fontSize': '16px', 
+                        'marginTop': '25px',
+                        'background': 'rgba(255, 255, 255, 0.9)',
+                        'padding': '20px',
+                        'borderRadius': '12px',
+                        'boxShadow': '0 4px 15px rgba(0, 0, 0, 0.1)',
+                        'border': '1px solid rgba(102, 126, 234, 0.2)'
+                    }),
+        ], style={
+            'width': '48%', 
+            'display': 'inline-block', 
+            'verticalAlign': 'top',
+            'background': 'rgba(255, 255, 255, 0.7)',
+            'padding': '25px',
+            'borderRadius': '15px',
+            'boxShadow': '0 8px 25px rgba(0, 0, 0, 0.1)',
+            'backdropFilter': 'blur(10px)',
+            'border': '1px solid rgba(255, 255, 255, 0.3)'
+        }),
+        
         # Rechte Spalte: Event-Dropdown und Fakten
         html.Div([
-            html.Label("Event (Spiele & Stadt):"),
+            html.Label("🏅 Event (Spiele & Stadt):", 
+                      style={'fontSize': '18px', 'fontWeight': '600', 'color': '#2c3e50', 'marginBottom': '10px'}),
             dcc.Dropdown(
                 id='event-dropdown',
                 options=[],
                 value=None,
                 clearable=False,
-                style={'width': '95%'}
+                style={
+                    'width': '100%',
+                    'fontSize': '16px'
+                },
+                placeholder="Event auswählen..."
             ),
-            html.Div(id='event-fakten-output', style={'fontSize': '18px', 'marginTop': '20px'}),
-        ], style={'width': '48%', 'display': 'inline-block', 'marginLeft': '4%', 'verticalAlign': 'top'}),
-    ], style={'width': '100%', 'display': 'flex'}),
+            html.Div(id='event-fakten-output', 
+                    style={
+                        'fontSize': '16px', 
+                        'marginTop': '25px',
+                        'background': 'rgba(255, 255, 255, 0.9)',
+                        'padding': '20px',
+                        'borderRadius': '12px',
+                        'boxShadow': '0 4px 15px rgba(0, 0, 0, 0.1)',
+                        'border': '1px solid rgba(102, 126, 234, 0.2)'
+                    }),
+        ], style={
+            'width': '48%', 
+            'display': 'inline-block', 
+            'marginLeft': '4%', 
+            'verticalAlign': 'top',
+            'background': 'rgba(255, 255, 255, 0.7)',
+            'padding': '25px',
+            'borderRadius': '15px',
+            'boxShadow': '0 8px 25px rgba(0, 0, 0, 0.1)',
+            'backdropFilter': 'blur(10px)',
+            'border': '1px solid rgba(255, 255, 255, 0.3)'
+        }),
+    ], style={
+        'width': '100%', 
+        'display': 'flex',
+        'gap': '20px',
+        'marginBottom': '40px'
+    }),
 ])
 
 # Event-Dropdown aktualisieren
@@ -326,8 +390,10 @@ app.layout = html.Div([
     Input('sportart-fakten-dropdown', 'value')
 )
 def update_event_dropdown(sport):
+    if not sport:
+        return [], None
     options = get_event_options(sport)
-    return options, options[0]['value'] if options else ([], None)
+    return options, options[0]['value'] if options else None
 
 # Fakten zur Sportart immer anzeigen
 @app.callback(
@@ -335,10 +401,20 @@ def update_event_dropdown(sport):
     Input('sportart-fakten-dropdown', 'value')
 )
 def sportart_fakten(sportart):
+    if not sportart:
+        return html.Div("Bitte wählen Sie eine Sportart aus.", 
+                       style={'textAlign': 'center', 'color': '#7f8c8d', 'fontStyle': 'italic'})
+    
     df = athlete_events[athlete_events['sport'] == sportart]
+    if df.empty:
+        return html.Div("Keine Daten für diese Sportart verfügbar.", 
+                       style={'textAlign': 'center', 'color': '#e74c3c'})
+    
+    # Berechnungen
     austragungen = df['year'].nunique()
     first_year = df['year'].min()
     last_year = df['year'].max()
+    
     teilnahmen_athlet = df.groupby('name').size()
     if not teilnahmen_athlet.empty:
         top_athlet = teilnahmen_athlet.idxmax()
@@ -346,6 +422,7 @@ def sportart_fakten(sportart):
     else:
         top_athlet = "Keine Daten"
         top_athlet_count = 0
+    
     teilnahmen_land = df.groupby('region').size()
     if not teilnahmen_land.empty:
         top_land = teilnahmen_land.idxmax()
@@ -353,23 +430,50 @@ def sportart_fakten(sportart):
     else:
         top_land = "Keine Daten"
         top_land_count = 0
+    
     unique_athletes = df['name'].nunique()
     unique_countries = df['region'].nunique()
+    
     if 'event' in df.columns:
         top_event = df['event'].value_counts().idxmax()
         top_event_count = df['event'].value_counts().max()
     else:
         top_event = "Keine Daten"
         top_event_count = 0
+    
     return html.Div([
-        html.H4(f"Fakten zur Sportart: {sportart}"),
-        html.Ul([
-            html.Li(f"Anzahl der Olympischen Spiele mit {sportart}: {austragungen} ({first_year}–{last_year})"),
-            html.Li(f"Meistteilnehmender Sportler: {top_athlet} ({top_athlet_count} Teilnahmen)"),
-            html.Li(f"Land mit den meisten Teilnahmen: {top_land} ({top_land_count} Teilnahmen)"),
-            html.Li(f"Anzahl verschiedener Athleten: {unique_athletes}"),
-            html.Li(f"Anzahl teilnehmender Länder: {unique_countries}"),
-            html.Li(f"Häufigste Disziplin: {top_event} ({top_event_count} Teilnahmen)")
+        html.H4(f"📊 {sportart}", 
+               style={'color': '#2c3e50', 'marginBottom': '20px', 'fontSize': '1.4em'}),
+        html.Div([
+            html.Div([
+                html.Span("🗓️ ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Olympische Spiele: {austragungen} ({first_year}–{last_year})")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
+            
+            html.Div([
+                html.Span("🏃‍♂️ ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Top-Athlet: {top_athlet} ({top_athlet_count} Teilnahmen)")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
+            
+            html.Div([
+                html.Span("🌍 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Top-Land: {top_land} ({top_land_count} Teilnahmen)")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
+            
+            html.Div([
+                html.Span("👥 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Verschiedene Athleten: {unique_athletes:,}")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
+            
+            html.Div([
+                html.Span("🏁 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Teilnehmende Länder: {unique_countries}")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
+            
+            html.Div([
+                html.Span("🎯 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Häufigste Disziplin: {top_event} ({top_event_count} Teilnahmen)")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
         ])
     ])
 
@@ -381,12 +485,21 @@ def sportart_fakten(sportart):
 )
 def event_fakten(event_value, sportart):
     if not event_value or not sportart:
-        return ""
+        return html.Div("Bitte wählen Sie eine Sportart und ein Event aus.", 
+                       style={'textAlign': 'center', 'color': '#7f8c8d', 'fontStyle': 'italic'})
+    
     games, city = event_value.split("||")
-    df = athlete_events[(athlete_events['sport'] == sportart) & (athlete_events['Games'] == games) & (athlete_events['City'] == city)]
+    df = athlete_events[(athlete_events['sport'] == sportart) & 
+                       (athlete_events['Games'] == games) & 
+                       (athlete_events['City'] == city)]
+    
     if df.empty:
-        return "Keine Daten für dieses Event."
+        return html.Div("Keine Daten für dieses Event verfügbar.", 
+                       style={'textAlign': 'center', 'color': '#e74c3c'})
+    
+    # Berechnungen
     teilnehmer = df['name'].nunique()
+    
     medals = df[df['medal'].notna()].groupby('name').size()
     if not medals.empty:
         top_medalist = medals.idxmax()
@@ -394,6 +507,8 @@ def event_fakten(event_value, sportart):
     else:
         top_medalist = "Keine Daten"
         top_medalist_count = 0
+    
+    # Größe
     if df['height'].notna().any():
         groesster = df.loc[df['height'].idxmax()]
         groesster_name = groesster['name']
@@ -401,6 +516,7 @@ def event_fakten(event_value, sportart):
     else:
         groesster_name = "Keine Daten"
         groesster_value = "?"
+    
     if df['height'].notna().any():
         kleinster = df.loc[df['height'].idxmin()]
         kleinster_name = kleinster['name']
@@ -408,6 +524,8 @@ def event_fakten(event_value, sportart):
     else:
         kleinster_name = "Keine Daten"
         kleinster_value = "?"
+    
+    # Alter
     if df['age'].notna().any():
         aeltester = df.loc[df['age'].idxmax()]
         aeltester_name = aeltester['name']
@@ -415,6 +533,7 @@ def event_fakten(event_value, sportart):
     else:
         aeltester_name = "Keine Daten"
         aeltester_value = "?"
+    
     if df['age'].notna().any():
         juengster = df.loc[df['age'].idxmin()]
         juengster_name = juengster['name']
@@ -424,14 +543,38 @@ def event_fakten(event_value, sportart):
         juengster_value = "?"
 
     return html.Div([
-        html.H4(f"Fakten zu: {games} ({city})"),
-        html.Ul([
-            html.Li(f"Teilnehmerzahl (unique Athleten): {teilnehmer}"),
-            html.Li(f"Meiste Medaillen: {top_medalist} ({top_medalist_count} Medaillen)"),
-            html.Li(f"Größter Teilnehmer: {groesster_name} ({groesster_value} cm)"),
-            html.Li(f"Kleinster Teilnehmer: {kleinster_name} ({kleinster_value} cm)"),
-            html.Li(f"Ältester Teilnehmer: {aeltester_name} ({aeltester_value} Jahre)"),
-            html.Li(f"Jüngster Teilnehmer: {juengster_name} ({juengster_value} Jahre)")
+        html.H4(f"🏅 {games} ({city})", 
+               style={'color': '#2c3e50', 'marginBottom': '20px', 'fontSize': '1.4em'}),
+        html.Div([
+            html.Div([
+                html.Span("👥 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Teilnehmer: {teilnehmer:,} Athleten")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
+            
+            html.Div([
+                html.Span("🏆 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Meiste Medaillen: {top_medalist} ({top_medalist_count})")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
+            
+            html.Div([
+                html.Span("📏 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Größter: {groesster_name} ({groesster_value} cm)")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
+            
+            html.Div([
+                html.Span("📐 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Kleinster: {kleinster_name} ({kleinster_value} cm)")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
+            
+            html.Div([
+                html.Span("👴 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Ältester: {aeltester_name} ({aeltester_value} Jahre)")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
+            
+            html.Div([
+                html.Span("👶 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
+                html.Span(f"Jüngster: {juengster_name} ({juengster_value} Jahre)")
+            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
         ])
     ])
 
