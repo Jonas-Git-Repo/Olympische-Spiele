@@ -296,8 +296,8 @@ app.layout = html.Div([
             html.Label("Sportart:"),
             dcc.Dropdown(
                 id='sportart-fakten-dropdown',
-                options=[{'label': s, 'value': s} for s in unique_sports],
-                value=unique_sports[0],
+                options=[{'label': s, 'value': s} for s in unique_sports_de],
+                value=unique_sports_de[0],
                 clearable=False,
                 style={'width': '95%'}
             ),
