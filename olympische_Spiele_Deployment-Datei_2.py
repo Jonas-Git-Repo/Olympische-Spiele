@@ -444,18 +444,15 @@ def update_country_comparison(period, season, countries_de, medal_type, gender):
     )
     return fig
 
+# Fakten zu Sportarten inkl. "meiste Medaillen in Disziplin"
 @app.callback(
-    Output('sportart-fakten-output', 'children'),
-    Input('sportart-fakten-dropdown', 'value'),
-    Input('season-dropdown', 'value')
+    Output('sport-facts-output', 'children'),
+    Input('sport-facts-dropdown', 'value')
 )
-def sportart_fakten(sportart_de, season):
-    if sportart_de == 'Alle':
-        return html.Div("Bitte eine konkrete Sportart auswählen.")
-    sport_en = sport_de_to_en(sportart_de)
-    df = athlete_events[(athlete_events['sport'] == sport_en) & (athlete_events['season'] == season)]
-    if df.empty:
-        return html.Div("Keine Daten für diese Kombination.")
+def sport_facts(sport):
+    if not sport or sport == "Alle":
+        return html.Div("Bitte eine Sportart auswählen.")
+    df = athlete_events[athlete_events['sport'] == sport]
     austragungen = df['year'].nunique()
     first_year = df['year'].min()
     last_year = df['year'].max()
@@ -468,8 +465,7 @@ def sportart_fakten(sportart_de, season):
         top_athlet_count = 0
     teilnahmen_land = df.groupby('region').size()
     if not teilnahmen_land.empty:
-        top_land_en = teilnahmen_land.idxmax()
-        top_land = country_translation.get(top_land_en, top_land_en)
+        top_land = teilnahmen_land.idxmax()
         top_land_count = teilnahmen_land.max()
     else:
         top_land = "Keine Daten"
@@ -479,21 +475,101 @@ def sportart_fakten(sportart_de, season):
     if 'event' in df.columns:
         top_event = df['event'].value_counts().idxmax()
         top_event_count = df['event'].value_counts().max()
+        # Wer hat die meisten Medaillen im häufigsten Event?
+        event_df = df[df['event'] == top_event]
+        medal_athlete = event_df[event_df['medal'].notna()].groupby('name').size()
+        if not medal_athlete.empty:
+            top_medalist = medal_athlete.idxmax()
+            top_medalist_count = medal_athlete.max()
+        else:
+            top_medalist = "Keine Daten"
+            top_medalist_count = 0
     else:
         top_event = "Keine Daten"
         top_event_count = 0
+        top_medalist = "Keine Daten"
+        top_medalist_count = 0
 
     return html.Div([
-        html.H4(f"Fakten zur Sportart: {sportart_de} ({season})"),
+        html.H4(f"Fakten zur Sportart: {sport}"),
         html.Ul([
-            html.Li(f"Anzahl der Olympischen Spiele mit {sportart_de}: {austragungen} ({first_year}–{last_year})"),
+            html.Li(f"Anzahl der Olympischen Spiele mit {sport}: {austragungen} ({first_year}–{last_year})"),
             html.Li(f"Meistteilnehmender Sportler: {top_athlet} ({top_athlet_count} Teilnahmen)"),
             html.Li(f"Land mit den meisten Teilnahmen: {top_land} ({top_land_count} Teilnahmen)"),
-            html.Li(f"Anzahl verschiedener Athleten: {unique_athletes}"),
+            html.Li(f"Anzahl verschiedener Sportler: {unique_athletes}"),
             html.Li(f"Anzahl teilnehmender Länder: {unique_countries}"),
-            html.Li(f"Häufigste Disziplin: {top_event} ({top_event_count} Teilnahmen)")
+            html.Li(f"Häufigste Disziplin: {top_event} ({top_event_count} Teilnahmen)"),
+            html.Li(f"Meiste Medaillen im häufigsten Event: {top_medalist} ({top_medalist_count} Medaillen)")
         ])
     ])
 
+# Fakten zu einzelnen Events
+@app.callback(
+    Output('event-facts-output', 'children'),
+    Input('event-dropdown', 'value'),
+    Input('sport-facts-dropdown', 'value')
+)
+def event_facts(event, sport):
+    if not event or not sport or sport == "Alle":
+        return html.Div("Bitte eine Disziplin auswählen.")
+    df = athlete_events[(athlete_events['sport'] == sport) & (athlete_events['event'] == event)]
+    if df.empty:
+        return html.Div("Keine Daten für dieses Event.")
+    # Zahl der Teilnehmer (unique Athleten)
+    teilnehmerzahl = df['name'].nunique()
+    # Meiste Medaillen im Event
+    medals = df[df['medal'].notna()].groupby('name').size()
+    if not medals.empty:
+        top_medalist = medals.idxmax()
+        top_medalist_count = medals.max()
+    else:
+        top_medalist = "Keine Daten"
+        top_medalist_count = 0
+    # Größter Teilnehmer
+    if df['height'].notna().any():
+        groesster = df.loc[df['height'].idxmax()]
+        groesster_name = groesster['name']
+        groesster_value = groesster['height']
+    else:
+        groesster_name = "Keine Daten"
+        groesster_value = "?"
+    # Kleinster Teilnehmer
+    if df['height'].notna().any():
+        kleinster = df.loc[df['height'].idxmin()]
+        kleinster_name = kleinster['name']
+        kleinster_value = kleinster['height']
+    else:
+        kleinster_name = "Keine Daten"
+        kleinster_value = "?"
+    # Ältester Teilnehmer
+    if df['age'].notna().any():
+        aeltester = df.loc[df['age'].idxmax()]
+        aeltester_name = aeltester['name']
+        aeltester_value = aeltester['age']
+    else:
+        aeltester_name = "Keine Daten"
+        aeltester_value = "?"
+    # Jüngster Teilnehmer
+    if df['age'].notna().any():
+        juengster = df.loc[df['age'].idxmin()]
+        juengster_name = juengster['name']
+        juengster_value = juengster['age']
+    else:
+        juengster_name = "Keine Daten"
+        juengster_value = "?"
+
+    return html.Div([
+        html.H4(f"Fakten zur Disziplin: {event}"),
+        html.Ul([
+            html.Li(f"Teilnehmerzahl (unique Athleten): {teilnehmerzahl}"),
+            html.Li(f"Meiste Medaillen im Event: {top_medalist} ({top_medalist_count} Medaillen)"),
+            html.Li(f"Größter Teilnehmer: {groesster_name} ({groesster_value} cm)"),
+            html.Li(f"Kleinster Teilnehmer: {kleinster_name} ({kleinster_value} cm)"),
+            html.Li(f"Ältester Teilnehmer: {aeltester_name} ({aeltester_value} Jahre)"),
+            html.Li(f"Jüngster Teilnehmer: {juengster_name} ({juengster_value} Jahre)")
+        ])
+    ])
+
+# App starten
 if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=8050)
