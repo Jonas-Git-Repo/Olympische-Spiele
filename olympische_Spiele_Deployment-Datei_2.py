@@ -26,8 +26,8 @@ with gzip.open("athlete_events.pkl.gz", "rb") as f:
 unique_sports_en = sorted(athlete_events['sport'].dropna().unique())
 # Individuelle Übersetzung aller Sportarten – bitte ggf. ergänzen/überarbeiten!
 sport_translation = {
-    'Alpinism': 'Alpinismus'
-    'Aeronautics': 'Luftfahrt'
+    'Alpinism': 'Alpinismus',
+    'Aeronautics': 'Luftfahrt',
     'Aquatics': 'Wassersport',
     'Archery': 'Bogenschießen',
     'Athletics': 'Leichtathletik',
