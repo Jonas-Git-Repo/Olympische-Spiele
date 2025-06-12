@@ -22,42 +22,120 @@ time_periods = {
 with gzip.open("athlete_events.pkl.gz", "rb") as f:
     athlete_events = pickle.load(f)
 
-# Übersetzungstabelle Deutsch <-> Englisch für Sportarten
-# Diese kannst du beliebig erweitern/ändern!
+# Sportarten-Übersetzung (alle aus dem Datensatz)
+unique_sports_en = sorted(athlete_events['sport'].dropna().unique())
+# Individuelle Übersetzung aller Sportarten – bitte ggf. ergänzen/überarbeiten!
 sport_translation = {
     'Aquatics': 'Wassersport',
+    'Archery': 'Bogenschießen',
     'Athletics': 'Leichtathletik',
+    'Badminton': 'Badminton',
+    'Baseball': 'Baseball',
     'Basketball': 'Basketball',
     'Boxing': 'Boxen',
+    'Canoeing': 'Kanu',
+    'Cricket': 'Cricket',
+    'Cross Country Skiing': 'Skilanglauf',
+    'Curling': 'Curling',
     'Cycling': 'Radsport',
+    'Diving': 'Wasserspringen',
+    'Equestrianism': 'Reitsport',
     'Fencing': 'Fechten',
+    'Figure Skating': 'Eiskunstlauf',
     'Football': 'Fußball',
+    'Freestyle Skiing': 'Freestyle Skiing',
+    'Golf': 'Golf',
     'Gymnastics': 'Turnen',
+    'Handball': 'Handball',
     'Hockey': 'Hockey',
+    'Ice Hockey': 'Eishockey',
+    'Judo': 'Judo',
+    'Lacrosse': 'Lacrosse',
+    'Luge': 'Rodeln',
+    'Modern Pentathlon': 'Moderner Fünfkampf',
+    'Rhythmic Gymnastics': 'Rhythmische Sportgymnastik',
     'Rowing': 'Rudern',
+    'Rugby': 'Rugby',
     'Sailing': 'Segeln',
     'Shooting': 'Schießen',
+    'Short Track Speed Skating': 'Shorttrack',
+    'Skeleton': 'Skeleton',
+    'Ski Jumping': 'Skispringen',
+    'Snowboarding': 'Snowboard',
+    'Softball': 'Softball',
+    'Speed Skating': 'Eisschnelllauf',
+    'Swimming': 'Schwimmen',
+    'Synchronized Swimming': 'Synchronschwimmen',
+    'Table Tennis': 'Tischtennis',
+    'Taekwondo': 'Taekwondo',
     'Tennis': 'Tennis',
+    'Trampolining': 'Trampolinturnen',
+    'Triathlon': 'Triathlon',
+    'Tug-Of-War': 'Tauziehen',
+    'Volleyball': 'Volleyball',
+    'Water Polo': 'Wasserball',
     'Weightlifting': 'Gewichtheben',
     'Wrestling': 'Ringen',
-    # ... weitere Zuordnungen ...
+    'Alpine Skiing': 'Ski Alpin',
+    'Biathlon': 'Biathlon',
+    'Bobsleigh': 'Bob',
+    'Nordic Combined': 'Nordische Kombination',
+    'Polo': 'Polo',
+    'Rugby Sevens': 'Rugby Siebener',
+    'Rugby Union': 'Rugby Union',
+    'Art Competitions': 'Kunstwettbewerbe',
+    'Basque Pelota': 'Pelota',
+    'Military Ski Patrol': 'Militärpatrouille',
+    'Motorboating': 'Motorbootsport',
+    'Mountain Biking': 'Mountainbike',
+    'Racquets': 'Rackets',
+    'Roque': 'Roque',
+    'Speed Skating': 'Eisschnelllauf',
+    'Croquet': 'Krocket',
+    'Jeu De Paume': 'Jeu de Paume',
+    'Softball': 'Softball',
+    'Tennis': 'Tennis',
+    # ... ggf. weitere aus athlete_events['sport'].unique() ergänzen ...
 }
-
-# Rückwärts-Lookup für Deutsch -> Englisch
+# Rückwärts-Lookup
 sport_translation_de_to_en = {v: k for k, v in sport_translation.items()}
 
-# Sportarten-Liste für Dropdowns (übersetzt)
-unique_sports_en = sorted(athlete_events['sport'].dropna().unique())
-unique_sports_de = [
-    sport_translation.get(s, s) for s in unique_sports_en
-]
+# Länder-Übersetzung (Beispiel: nur ein kleiner Auszug, bitte ggf. mit vollständiger ISO-Liste ersetzen)
+country_translation = {
+    'Germany': 'Deutschland',
+    'USA': 'Vereinigte Staaten',
+    'United States': 'Vereinigte Staaten',
+    'France': 'Frankreich',
+    'Italy': 'Italien',
+    'Great Britain': 'Großbritannien',
+    'Soviet Union': 'Sowjetunion',
+    'China': 'China',
+    'Japan': 'Japan',
+    'Canada': 'Kanada',
+    'Australia': 'Australien',
+    'Russia': 'Russland',
+    'Sweden': 'Schweden',
+    'Norway': 'Norwegen',
+    'Finland': 'Finnland',
+    'Netherlands': 'Niederlande',
+    'Switzerland': 'Schweiz',
+    'Hungary': 'Ungarn',
+    'Poland': 'Polen',
+    'Greece': 'Griechenland',
+    
+    # ... ergänze alle Länder, die in athlete_events['region'].unique() vorkommen ...
+}
+country_translation_de_to_en = {v: k for k, v in country_translation.items()}
+
+# Sportarten und Länder auf Deutsch für Dropdowns
+unique_sports_de = [sport_translation.get(s, s) for s in unique_sports_en]
 sport_options = [{'label': '🏆 Alle Sportarten', 'value': 'Alle'}] + [
     {'label': de, 'value': de} for de in unique_sports_de
 ]
+unique_countries_en = sorted(athlete_events['region'].dropna().unique())
+unique_countries_de = [country_translation.get(c, c) for c in unique_countries_en]
+region_options = [{'label': de, 'value': de} for de in unique_countries_de]
 
-region_options = [{'label': r, 'value': r} for r in sorted(athlete_events['region'].dropna().unique())]
-
-# Layout
 app.layout = html.Div([
     html.H1("🏅 Olympische Spiele Dashboard", style={'textAlign': 'center'}),
     html.Div([
@@ -74,7 +152,7 @@ app.layout = html.Div([
             value='Summer'
         ),
         html.Label("Land (einzeln):"),
-        dcc.Dropdown(id='country-dropdown', options=region_options, value='Germany'),
+        dcc.Dropdown(id='country-dropdown', options=region_options, value='Deutschland'),
         html.Label("Sportart:"),
         dcc.Dropdown(id='sport-dropdown', options=sport_options, value='Alle'),
         html.Label("Geschlecht:"),
@@ -98,7 +176,7 @@ app.layout = html.Div([
                 dcc.Dropdown(
                     id='multi-country-dropdown',
                     options=region_options,
-                    value=['Germany', 'USA'],
+                    value=['Deutschland', 'Vereinigte Staaten'],
                     multi=True
                 ),
                 html.Label("Medaillentyp:"),
@@ -112,7 +190,6 @@ app.layout = html.Div([
         ]),
     ]),
 
-    # Faktenbereich zu Sportarten (unterhalb der Dashboards)
     html.H2("Fakten zu den Sportarten", style={'marginTop': '40px'}),
     html.Label("Wähle eine Sportart:"),
     dcc.Dropdown(
@@ -125,7 +202,6 @@ app.layout = html.Div([
     html.Div(id='sportart-fakten-output', style={'fontSize': '18px', 'marginTop': '20px'})
 ])
 
-# Sportarten-Dropdowns synchronisieren (bei Saisonwechsel)
 @app.callback(
     Output('sport-dropdown', 'options'),
     Output('sport-dropdown', 'value'),
@@ -136,18 +212,22 @@ app.layout = html.Div([
 )
 def update_sport_options(season):
     sports_en = sorted(athlete_events[athlete_events['season'] == season]['sport'].dropna().unique())
-    sports_de = [
-        sport_translation.get(s, s) for s in sports_en
-    ]
+    sports_de = [sport_translation.get(s, s) for s in sports_en]
     options = [{'label': '🏆 Alle Sportarten', 'value': 'Alle'}] + [
         {'label': de, 'value': de} for de in sports_de
     ]
-    # Default auf "Alle" und erste echte Sportart
     value_dropdown = 'Alle'
     value_fakten = sports_de[0] if sports_de else 'Alle'
     return options, value_dropdown, options, value_fakten
 
-# Medaillen-Barplot (Einzelland)
+# Land Dropdown: Deutsch -> Englisch für Filterung
+def country_de_to_en(de):
+    return country_translation_de_to_en.get(de, de)
+
+# Sport Dropdown: Deutsch -> Englisch für Filterung
+def sport_de_to_en(de):
+    return sport_translation_de_to_en.get(de, de)
+
 @app.callback(
     Output('medals-chart', 'figure'),
     Input('period-dropdown', 'value'),
@@ -156,17 +236,17 @@ def update_sport_options(season):
     Input('sport-dropdown', 'value'),
     Input('gender-dropdown', 'value')
 )
-def update_medals_chart(period, season, country, sport_de, gender):
+def update_medals_chart(period, season, country_de, sport_de, gender):
     start, end = time_periods[period]
+    country_en = country_de_to_en(country_de)
     df = athlete_events[
         (athlete_events['year'].between(start, end)) &
         (athlete_events['season'] == season) &
-        (athlete_events['region'] == country) &
+        (athlete_events['region'] == country_en) &
         (athlete_events['medal'].notna())
     ]
-    # Übersetze die ausgewählte Sportart zurück ins Englische für die Filterung
     if sport_de != 'Alle':
-        sport_en = sport_translation_de_to_en.get(sport_de, sport_de)
+        sport_en = sport_de_to_en(sport_de)
         df = df[df['sport'] == sport_en]
     if gender != 'Alle':
         df = df[df['sex'] == gender]
@@ -179,14 +259,13 @@ def update_medals_chart(period, season, country, sport_de, gender):
             fig.add_trace(go.Bar(x=count.index, y=count[m], name=m, marker_color=medal_colors[m]))
     fig.update_layout(
         barmode='stack',
-        title=f"{country} – {sport_de if sport_de != 'Alle' else 'alle Sportarten'} ({season}, {period})",
+        title=f"{country_de} – {sport_de if sport_de != 'Alle' else 'alle Sportarten'} ({season}, {period})",
         xaxis_title='Jahr',
         yaxis_title='Medaillen',
         yaxis=dict(tickformat=".0f")
     )
     return fig
 
-# Heatmap
 @app.callback(
     Output('heatmap-chart', 'figure'),
     Input('period-dropdown', 'value'),
@@ -194,19 +273,19 @@ def update_medals_chart(period, season, country, sport_de, gender):
     Input('country-dropdown', 'value'),
     Input('gender-dropdown', 'value')
 )
-def update_heatmap(period, season, country, gender):
+def update_heatmap(period, season, country_de, gender):
     start, end = time_periods[period]
+    country_en = country_de_to_en(country_de)
     df = athlete_events[
         (athlete_events['year'].between(start, end)) &
         (athlete_events['season'] == season) &
-        (athlete_events['region'] == country) &
+        (athlete_events['region'] == country_en) &
         (athlete_events['medal'].notna())
     ]
     if gender != 'Alle':
         df = df[df['sex'] == gender]
     if df.empty:
         return go.Figure().add_annotation(text="⚠️ Keine Daten verfügbar", x=0.5, y=0.5, showarrow=False)
-    # Sportarten auf Deutsch für die Heatmap
     matrix = df.copy()
     matrix['sport_de'] = matrix['sport'].map(lambda x: sport_translation.get(x, x))
     mat = matrix.groupby(['sport_de', 'year']).size().unstack(fill_value=0)
@@ -217,13 +296,12 @@ def update_heatmap(period, season, country, gender):
         hovertemplate='Disziplin: %{y}<br>Jahr: %{x}<br>Anzahl: %{z}<extra></extra>'
     ))
     fig.update_layout(
-        title=f"Heatmap – {country} ({season}, {period})",
+        title=f"Heatmap – {country_de} ({season}, {period})",
         xaxis_title='Jahr',
         yaxis_title='Sportart'
     )
     return fig
 
-# Chart: Mehrere Länder im Vergleich
 @app.callback(
     Output('country-comparison-chart', 'figure'),
     Input('period-dropdown', 'value'),
@@ -232,12 +310,13 @@ def update_heatmap(period, season, country, gender):
     Input('medal-dropdown', 'value'),
     Input('gender-dropdown', 'value')
 )
-def update_country_comparison(period, season, countries, medal_type, gender):
+def update_country_comparison(period, season, countries_de, medal_type, gender):
     start, end = time_periods[period]
+    countries_en = [country_de_to_en(c) for c in countries_de]
     df = athlete_events[
         (athlete_events['year'].between(start, end)) &
         (athlete_events['season'] == season) &
-        (athlete_events['region'].isin(countries)) &
+        (athlete_events['region'].isin(countries_en)) &
         (athlete_events['medal'].notna())
     ]
     if gender != 'Alle':
@@ -246,9 +325,11 @@ def update_country_comparison(period, season, countries, medal_type, gender):
         df = df[df['medal'] == medal_type]
     if df.empty:
         return go.Figure().add_annotation(text="⚠️ Keine Medaillendaten für diese Auswahl", x=0.5, y=0.5, showarrow=False)
-    counts = df.groupby('region').size().reindex(countries, fill_value=0)
+    counts = df.groupby('region').size().reindex(countries_en, fill_value=0)
+    # Achsen wieder auf Deutsch
+    countries_de_axis = [country_translation.get(c, c) for c in counts.index]
     fig = go.Figure(data=[go.Bar(
-        x=counts.index,
+        x=countries_de_axis,
         y=counts.values,
         marker_color=medal_colors[medal_type],
         text=counts.values,
@@ -262,17 +343,15 @@ def update_country_comparison(period, season, countries, medal_type, gender):
     )
     return fig
 
-# Fakten zu Sportarten
 @app.callback(
     Output('sportart-fakten-output', 'children'),
     Input('sportart-fakten-dropdown', 'value'),
     Input('season-dropdown', 'value')
 )
 def sportart_fakten(sportart_de, season):
-    # Übersetze zurück ins Englische für Filterung
     if sportart_de == 'Alle':
         return html.Div("Bitte eine konkrete Sportart auswählen.")
-    sport_en = sport_translation_de_to_en.get(sportart_de, sportart_de)
+    sport_en = sport_de_to_en(sportart_de)
     df = athlete_events[(athlete_events['sport'] == sport_en) & (athlete_events['season'] == season)]
     if df.empty:
         return html.Div("Keine Daten für diese Kombination.")
@@ -288,7 +367,8 @@ def sportart_fakten(sportart_de, season):
         top_athlet_count = 0
     teilnahmen_land = df.groupby('region').size()
     if not teilnahmen_land.empty:
-        top_land = teilnahmen_land.idxmax()
+        top_land_en = teilnahmen_land.idxmax()
+        top_land = country_translation.get(top_land_en, top_land_en)
         top_land_count = teilnahmen_land.max()
     else:
         top_land = "Keine Daten"
@@ -314,6 +394,5 @@ def sportart_fakten(sportart_de, season):
         ])
     ])
 
-# App starten
 if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=8050)
