@@ -102,7 +102,7 @@ sport_translation_de_to_en = {v: k for k, v in sport_translation.items()}
 
 # Länder-Übersetzung (Beispiel: nur ein kleiner Auszug, bitte ggf. mit vollständiger ISO-Liste ersetzen)
 country_translation = {
-        "Albania": "Albanien",
+    "Albania": "Albanien",
     "Algeria": "Algerien",
     "American Samoa": "Amerikanisch-Samoa",
     "Antigua": "Antigua und Barbuda",
@@ -222,7 +222,7 @@ country_translation = {
     "Virgin Islands, US": "Amerikanische Jungferninseln",
     "Yemen": "Jemen",
     "Zambia": "Sambia",
-    "Zimbabwe": "Simbabwe“
+    "Zimbabwe": "Simbabwe",
 }
 country_translation_de_to_en = {v: k for k, v in country_translation.items()}
 
