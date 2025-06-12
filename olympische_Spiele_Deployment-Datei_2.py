@@ -298,7 +298,7 @@ app.layout = html.Div([
             dcc.Dropdown(
                 id='sportart-fakten-dropdown',
                 options=sport_options,
-                value=unique_sports[0],
+                value=unique_sports_de[0],
                 clearable=False,
                 style={'width': '95%'}
             ),
