@@ -540,7 +540,6 @@ html.H2("Fakten zu Sportarten und Events",
         'gap': '20px',
         'marginBottom': '40px'
     }),
-])
 
 # Event-Dropdown aktualisieren
 @app.callback(
