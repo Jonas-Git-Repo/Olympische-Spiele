@@ -534,6 +534,14 @@ def olympiade_fakten(jahr, season):
             html.Li(f"Land mit den meisten Teilnahmen: {top_land_de} ({top_land_count})"),
             html.Li(f"Erfolgreichstes Land: {erfolgreichstes_land_de} ({erfolgreichstes_land_medals} Medaillen)"),
             html.Li(f"Häufigste Medaille: {häufigste_medaille}")
+
+        dcc.Dropdown(
+            id='olympiade-jahr-dropdown',
+            options=[{'label': str(j), 'value': j} for j in sorted(athlete_events['year'].unique())],
+            value=2016
+)
+        html.Div(id='olympiade-fakten-output')
+
         ])
     ])
 
