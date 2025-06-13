@@ -494,16 +494,40 @@ def sportart_fakten(sportart_de, season):
             html.Li(f"Häufigste Disziplin: {top_event} ({top_event_count} Teilnahmen)")
         ])
     ])
+app.layout = html.Div([
+    html.H2("📅 Olympiade-Fakten"),
+    html.Label("Jahr der Olympiade:"),
+    dcc.Dropdown(
+        id='olympiade-jahr-dropdown',
+        options=[{'label': str(j), 'value': j} for j in sorted(athlete_events['year'].unique())],
+        value=2016
+    ),
+    html.Label("Saison:"),
+    dcc.Dropdown(
+        id='season-dropdown',
+        options=[
+            {'label': '☀️ Sommer', 'value': 'Summer'},
+            {'label': '❄️ Winter', 'value': 'Winter'}
+        ],
+        value='Summer'
+    ),
+    html.Br(),
+    html.Div(id='olympiade-fakten-output')
+])
+
+# Callback zur Anzeige der Fakten
 @app.callback(
     Output('olympiade-fakten-output', 'children'),
     Input('olympiade-jahr-dropdown', 'value'),
     Input('season-dropdown', 'value')
 )
 def olympiade_fakten(jahr, season):
-    df = athlete_events[(athlete_events['year'] == jahr) & (athlete_events['season'] == season)]
+    df = athlete_events[
+        (athlete_events['year'] == jahr) & (athlete_events['season'] == season)
+    ]
     
     if df.empty:
-        return html.Div("Keine Daten für diese Olympiade.")
+        return html.Div("❗ Keine Daten für diese Olympiade.")
 
     n_sportarten = df['sport'].nunique()
     n_events = df['event'].nunique()
@@ -533,18 +557,9 @@ def olympiade_fakten(jahr, season):
             html.Li(f"Anzahl Athletinnen und Athleten: {n_athleten}"),
             html.Li(f"Land mit den meisten Teilnahmen: {top_land_de} ({top_land_count})"),
             html.Li(f"Erfolgreichstes Land: {erfolgreichstes_land_de} ({erfolgreichstes_land_medals} Medaillen)"),
-            html.Li(f"Häufigste Medaille: {häufigste_medaille}")
+            html.Li(f"Häufigste vergebene Medaille: {häufigste_medaille}")
         ])
-        dcc.Dropdown(
-            id='olympiade-jahr-dropdown',
-            options=[{'label': str(j), 'value': j} for j in sorted(athlete_events['year'].unique())],
-            value=2016
-)
-        html.Div(id='olympiade-fakten-output')
-
-
     ])
-
 
 
 if __name__ == '__main__':
