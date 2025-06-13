@@ -452,30 +452,44 @@ def update_country_comparison(period, season, countries_de, medal_type, gender):
 def sportart_fakten(sportart_de, season):
     if sportart_de == 'Alle':
         return html.Div("Bitte eine konkrete Sportart auswählen.")
+
     sport_en = sport_de_to_en(sportart_de)
     df = athlete_events[(athlete_events['sport'] == sport_en) & (athlete_events['season'] == season)]
+
     if df.empty:
         return html.Div("Keine Daten für diese Kombination.")
+
     austragungen = df['year'].nunique()
     first_year = df['year'].min()
     last_year = df['year'].max()
-    teilnahmen_athlet = df.groupby('name').size()
-    if not teilnahmen_athlet.empty:
-        top_athlet = teilnahmen_athlet.idxmax()
-        top_athlet_count = teilnahmen_athlet.max()
-    else:
-        top_athlet = "Keine Daten"
-        top_athlet_count = 0
-    teilnahmen_land = df.groupby('region').size()
-    if not teilnahmen_land.empty:
-        top_land_en = teilnahmen_land.idxmax()
-        top_land = country_translation.get(top_land_en, top_land_en)
-        top_land_count = teilnahmen_land.max()
-    else:
-        top_land = "Keine Daten"
-        top_land_count = 0
     unique_athletes = df['name'].nunique()
     unique_countries = df['region'].nunique()
+
+    # Teilnahmen
+    teilnahmen_athlet = df.groupby('name').size()
+    top_athlet = teilnahmen_athlet.idxmax() if not teilnahmen_athlet.empty else "Keine Daten"
+    top_athlet_count = teilnahmen_athlet.max() if not teilnahmen_athlet.empty else 0
+
+    teilnahmen_land = df.groupby('region').size()
+    top_land_en = teilnahmen_land.idxmax() if not teilnahmen_land.empty else "Keine Daten"
+    top_land = country_translation.get(top_land_en, top_land_en)
+    top_land_count = teilnahmen_land.max() if not teilnahmen_land.empty else 0
+
+    # Medaillen (nur Datensätze mit Medaillen)
+    medal_df = df[df['medal'].notna()]
+    if not medal_df.empty:
+        top_medal_athlete = medal_df['name'].value_counts().idxmax()
+        top_medal_athlete_count = medal_df['name'].value_counts().max()
+        top_medal_country_en = medal_df['region'].value_counts().idxmax()
+        top_medal_country = country_translation.get(top_medal_country_en, top_medal_country_en)
+        top_medal_country_count = medal_df['region'].value_counts().max()
+    else:
+        top_medal_athlete = "Keine Daten"
+        top_medal_athlete_count = 0
+        top_medal_country = "Keine Daten"
+        top_medal_country_count = 0
+
+    # Disziplinen
     if 'event' in df.columns:
         top_event = df['event'].value_counts().idxmax()
         top_event_count = df['event'].value_counts().max()
@@ -488,7 +502,9 @@ def sportart_fakten(sportart_de, season):
         html.Ul([
             html.Li(f"Anzahl der Olympischen Spiele mit {sportart_de}: {austragungen} ({first_year}–{last_year})"),
             html.Li(f"Meistteilnehmender Sportler: {top_athlet} ({top_athlet_count} Teilnahmen)"),
+            html.Li(f"Sportler mit den meisten Medaillen: {top_medal_athlete} ({top_medal_athlete_count})"),
             html.Li(f"Land mit den meisten Teilnahmen: {top_land} ({top_land_count} Teilnahmen)"),
+            html.Li(f"Erfolgreichstes Land: {top_medal_country} ({top_medal_country_count} Medaillen)"),
             html.Li(f"Anzahl verschiedener Athleten: {unique_athletes}"),
             html.Li(f"Anzahl teilnehmender Länder: {unique_countries}"),
             html.Li(f"Häufigste Disziplin: {top_event} ({top_event_count} Teilnahmen)")
