@@ -475,21 +475,21 @@ def sportart_fakten(sportart_de, season):
     top_land = country_translation.get(top_land_en, top_land_en)
     top_land_count = teilnahmen_land.max() if not teilnahmen_land.empty else 0
 
-    # Medaillen (nur Datensätze mit Medaillen)
-    medal_df = df[df['medal'].notna()]
-    if not medal_df.empty:
-        top_medal_athlete = medal_df['name'].value_counts().idxmax()
-        top_medal_athlete_count = medal_df['name'].value_counts().max()
-        top_medal_country_en = medal_df['region'].value_counts().idxmax()
-        top_medal_country = country_translation.get(top_medal_country_en, top_medal_country_en)
-        top_medal_country_count = medal_df['region'].value_counts().max()
+    # Erfolgreichster Sportler und Land basierend auf Goldmedaillen
+    gold_df = df[df['medal'] == 'Gold']
+    if not gold_df.empty:
+        top_gold_athlete = gold_df['name'].value_counts().idxmax()
+        top_gold_athlete_count = gold_df['name'].value_counts().max()
+        top_gold_country_en = gold_df['region'].value_counts().idxmax()
+        top_gold_country = country_translation.get(top_gold_country_en, top_gold_country_en)
+        top_gold_country_count = gold_df['region'].value_counts().max()
     else:
-        top_medal_athlete = "Keine Daten"
-        top_medal_athlete_count = 0
-        top_medal_country = "Keine Daten"
-        top_medal_country_count = 0
+        top_gold_athlete = "Keine Daten"
+        top_gold_athlete_count = 0
+        top_gold_country = "Keine Daten"
+        top_gold_country_count = 0
 
-    # Disziplinen
+    # Häufigste Disziplin
     if 'event' in df.columns:
         top_event = df['event'].value_counts().idxmax()
         top_event_count = df['event'].value_counts().max()
@@ -502,9 +502,9 @@ def sportart_fakten(sportart_de, season):
         html.Ul([
             html.Li(f"Anzahl der Olympischen Spiele mit {sportart_de}: {austragungen} ({first_year}–{last_year})"),
             html.Li(f"Meistteilnehmender Sportler: {top_athlet} ({top_athlet_count} Teilnahmen)"),
-            html.Li(f"Sportler mit den meisten Medaillen: {top_medal_athlete} ({top_medal_athlete_count})"),
+            html.Li(f"Erfolgreichster Sportler (Goldmedaillen): {top_gold_athlete} ({top_gold_athlete_count})"),
             html.Li(f"Land mit den meisten Teilnahmen: {top_land} ({top_land_count} Teilnahmen)"),
-            html.Li(f"Erfolgreichstes Land: {top_medal_country} ({top_medal_country_count} Medaillen)"),
+            html.Li(f"Erfolgreichstes Land (Goldmedaillen): {top_gold_country} ({top_gold_country_count})"),
             html.Li(f"Anzahl verschiedener Athleten: {unique_athletes}"),
             html.Li(f"Anzahl teilnehmender Länder: {unique_countries}"),
             html.Li(f"Häufigste Disziplin: {top_event} ({top_event_count} Teilnahmen)")
