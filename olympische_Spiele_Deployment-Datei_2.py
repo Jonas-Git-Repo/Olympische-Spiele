@@ -239,8 +239,6 @@ region_options = [{'label': de, 'value': de} for de in unique_countries_de]
 
 app.layout = html.Div([
     html.H1("🏅 Olympische Spiele Dashboard", style={'textAlign': 'center'}),
-    
-    # 🔹 Filter oben
     html.Div([
         html.Label("Zeitraum:"),
         dcc.Dropdown(
@@ -266,7 +264,6 @@ app.layout = html.Div([
         ),
     ], style={'columnCount': 2}),
 
-    # 🔹 Tabs
     dcc.Tabs([
         dcc.Tab(label='🏅 Einzelvergleich', children=[
             dcc.Graph(id='medals-chart')
@@ -294,7 +291,6 @@ app.layout = html.Div([
         ]),
     ]),
 
-    # 🔹 Sportarten-Fakten
     html.H2("Fakten zu den Sportarten", style={'marginTop': '40px'}),
     html.Label("Wähle eine Sportart:"),
     dcc.Dropdown(
@@ -304,31 +300,200 @@ app.layout = html.Div([
         clearable=False,
         style={'width': '60%'}
     ),
-    html.Div(id='sportart-fakten-output', style={'fontSize': '18px', 'marginTop': '20px'}),
-
-    # 🔹 Olympiade-Fakten
-    html.H2("📅 Olympiade-Fakten", style={'marginTop': '50px'}),
-    html.Label("Jahr der Olympiade:"),
-    dcc.Dropdown(
-        id='olympiade-jahr-dropdown',
-        options=[{'label': str(j), 'value': j} for j in sorted(athlete_events['year'].unique())],
-        value=2016,
-        style={'width': '40%'}
-    ),
-    html.Label("Saison:"),
-    dcc.Dropdown(
-        id='season-dropdown',
-        options=[
-            {'label': '☀️ Sommer', 'value': 'Summer'},
-            {'label': '❄️ Winter', 'value': 'Winter'}
-        ],
-        value='Summer',
-        style={'width': '40%', 'marginBottom': '20px'}
-    ),
-    html.Div(id='olympiade-fakten-output', style={'fontSize': '18px'})
+    html.Div(id='sportart-fakten-output', style={'fontSize': '18px', 'marginTop': '20px'})
 ])
 
+@app.callback(
+    Output('sport-dropdown', 'options'),
+    Output('sport-dropdown', 'value'),
+    Output('sportart-fakten-dropdown', 'options'),
+    Output('sportart-fakten-dropdown', 'value'),
+    Input('season-dropdown', 'value'),
+    prevent_initial_call=False
+)
+def update_sport_options(season):
+    sports_en = sorted(athlete_events[athlete_events['season'] == season]['sport'].dropna().unique())
+    sports_de = [sport_translation.get(s, s) for s in sports_en]
+    options = [{'label': '🏆 Alle Sportarten', 'value': 'Alle'}] + [
+        {'label': de, 'value': de} for de in sports_de
+    ]
+    value_dropdown = 'Alle'
+    value_fakten = sports_de[0] if sports_de else 'Alle'
+    return options, value_dropdown, options, value_fakten
 
+# Land Dropdown: Deutsch -> Englisch für Filterung
+def country_de_to_en(de):
+    return country_translation_de_to_en.get(de, de)
+
+# Sport Dropdown: Deutsch -> Englisch für Filterung
+def sport_de_to_en(de):
+    return sport_translation_de_to_en.get(de, de)
+
+@app.callback(
+    Output('medals-chart', 'figure'),
+    Input('period-dropdown', 'value'),
+    Input('season-dropdown', 'value'),
+    Input('country-dropdown', 'value'),
+    Input('sport-dropdown', 'value'),
+    Input('gender-dropdown', 'value')
+)
+def update_medals_chart(period, season, country_de, sport_de, gender):
+    start, end = time_periods[period]
+    country_en = country_de_to_en(country_de)
+    df = athlete_events[
+        (athlete_events['year'].between(start, end)) &
+        (athlete_events['season'] == season) &
+        (athlete_events['region'] == country_en) &
+        (athlete_events['medal'].notna())
+    ]
+    if sport_de != 'Alle':
+        sport_en = sport_de_to_en(sport_de)
+        df = df[df['sport'] == sport_en]
+    if gender != 'Alle':
+        df = df[df['sex'] == gender]
+    if df.empty:
+        return go.Figure().add_annotation(text="⚠️ Keine Daten verfügbar", x=0.5, y=0.5, showarrow=False)
+    count = df.groupby(['year', 'medal']).size().unstack(fill_value=0)
+    fig = go.Figure()
+    for m in ['Bronze', 'Silver', 'Gold']:
+        if m in count:
+            fig.add_trace(go.Bar(x=count.index, y=count[m], name=m, marker_color=medal_colors[m]))
+    fig.update_layout(
+        barmode='stack',
+        title=f"{country_de} – {sport_de if sport_de != 'Alle' else 'alle Sportarten'} ({season}, {period})",
+        xaxis_title='Jahr',
+        yaxis_title='Medaillen',
+        yaxis=dict(tickformat=".0f")
+    )
+    return fig
+
+@app.callback(
+    Output('heatmap-chart', 'figure'),
+    Input('period-dropdown', 'value'),
+    Input('season-dropdown', 'value'),
+    Input('country-dropdown', 'value'),
+    Input('gender-dropdown', 'value')
+)
+def update_heatmap(period, season, country_de, gender):
+    start, end = time_periods[period]
+    country_en = country_de_to_en(country_de)
+    df = athlete_events[
+        (athlete_events['year'].between(start, end)) &
+        (athlete_events['season'] == season) &
+        (athlete_events['region'] == country_en) &
+        (athlete_events['medal'].notna())
+    ]
+    if gender != 'Alle':
+        df = df[df['sex'] == gender]
+    if df.empty:
+        return go.Figure().add_annotation(text="⚠️ Keine Daten verfügbar", x=0.5, y=0.5, showarrow=False)
+    matrix = df.copy()
+    matrix['sport_de'] = matrix['sport'].map(lambda x: sport_translation.get(x, x))
+    mat = matrix.groupby(['sport_de', 'year']).size().unstack(fill_value=0)
+    fig = go.Figure(data=go.Heatmap(
+        z=mat.values, x=mat.columns, y=mat.index,
+        colorscale='YlOrBr',
+        colorbar=dict(title='Medaillen'),
+        hovertemplate='Disziplin: %{y}<br>Jahr: %{x}<br>Anzahl: %{z}<extra></extra>'
+    ))
+    fig.update_layout(
+        title=f"Heatmap – {country_de} ({season}, {period})",
+        xaxis_title='Jahr',
+        yaxis_title='Sportart'
+    )
+    return fig
+
+@app.callback(
+    Output('country-comparison-chart', 'figure'),
+    Input('period-dropdown', 'value'),
+    Input('season-dropdown', 'value'),
+    Input('multi-country-dropdown', 'value'),
+    Input('medal-dropdown', 'value'),
+    Input('gender-dropdown', 'value')
+)
+def update_country_comparison(period, season, countries_de, medal_type, gender):
+    start, end = time_periods[period]
+    countries_en = [country_de_to_en(c) for c in countries_de]
+    df = athlete_events[
+        (athlete_events['year'].between(start, end)) &
+        (athlete_events['season'] == season) &
+        (athlete_events['region'].isin(countries_en)) &
+        (athlete_events['medal'].notna())
+    ]
+    if gender != 'Alle':
+        df = df[df['sex'] == gender]
+    if medal_type != 'Alle':
+        df = df[df['medal'] == medal_type]
+    if df.empty:
+        return go.Figure().add_annotation(text="⚠️ Keine Medaillendaten für diese Auswahl", x=0.5, y=0.5, showarrow=False)
+    counts = df.groupby('region').size().reindex(countries_en, fill_value=0)
+    # Achsen wieder auf Deutsch
+    countries_de_axis = [country_translation.get(c, c) for c in counts.index]
+    fig = go.Figure(data=[go.Bar(
+        x=countries_de_axis,
+        y=counts.values,
+        marker_color=medal_colors[medal_type],
+        text=counts.values,
+        textposition='auto'
+    )])
+    fig.update_layout(
+        title=f"Medaillenvergleich ({medal_type}) – {season} {period}" + (f", Geschlecht: {gender}" if gender != 'Alle' else ""),
+        xaxis_title="Land",
+        yaxis_title="Anzahl Medaillen",
+        yaxis=dict(tickformat=".0f")
+    )
+    return fig
+
+@app.callback(
+    Output('sportart-fakten-output', 'children'),
+    Input('sportart-fakten-dropdown', 'value'),
+    Input('season-dropdown', 'value')
+)
+def sportart_fakten(sportart_de, season):
+    if sportart_de == 'Alle':
+        return html.Div("Bitte eine konkrete Sportart auswählen.")
+    sport_en = sport_de_to_en(sportart_de)
+    df = athlete_events[(athlete_events['sport'] == sport_en) & (athlete_events['season'] == season)]
+    if df.empty:
+        return html.Div("Keine Daten für diese Kombination.")
+    austragungen = df['year'].nunique()
+    first_year = df['year'].min()
+    last_year = df['year'].max()
+    teilnahmen_athlet = df.groupby('name').size()
+    if not teilnahmen_athlet.empty:
+        top_athlet = teilnahmen_athlet.idxmax()
+        top_athlet_count = teilnahmen_athlet.max()
+    else:
+        top_athlet = "Keine Daten"
+        top_athlet_count = 0
+    teilnahmen_land = df.groupby('region').size()
+    if not teilnahmen_land.empty:
+        top_land_en = teilnahmen_land.idxmax()
+        top_land = country_translation.get(top_land_en, top_land_en)
+        top_land_count = teilnahmen_land.max()
+    else:
+        top_land = "Keine Daten"
+        top_land_count = 0
+    unique_athletes = df['name'].nunique()
+    unique_countries = df['region'].nunique()
+    if 'event' in df.columns:
+        top_event = df['event'].value_counts().idxmax()
+        top_event_count = df['event'].value_counts().max()
+    else:
+        top_event = "Keine Daten"
+        top_event_count = 0
+
+    return html.Div([
+        html.H4(f"Fakten zur Sportart: {sportart_de} ({season})"),
+        html.Ul([
+            html.Li(f"Anzahl der Olympischen Spiele mit {sportart_de}: {austragungen} ({first_year}–{last_year})"),
+            html.Li(f"Meistteilnehmender Sportler: {top_athlet} ({top_athlet_count} Teilnahmen)"),
+            html.Li(f"Land mit den meisten Teilnahmen: {top_land} ({top_land_count} Teilnahmen)"),
+            html.Li(f"Anzahl verschiedener Athleten: {unique_athletes}"),
+            html.Li(f"Anzahl teilnehmender Länder: {unique_countries}"),
+            html.Li(f"Häufigste Disziplin: {top_event} ({top_event_count} Teilnahmen)")
+        ])
+    ])
 
 if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=8050)
