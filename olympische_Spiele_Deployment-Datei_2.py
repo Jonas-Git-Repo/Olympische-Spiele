@@ -449,130 +449,16 @@ def update_country_comparison(period, season, countries_de, medal_type, gender):
     Input('sportart-fakten-dropdown', 'value'),
     Input('season-dropdown', 'value')
 )
-html.H2("Fakten zu Sportarten und Events", 
-            style={
-                'marginTop': '40px', 
-                'textAlign': 'center',
-                'color': '#2c3e50',
-                'fontWeight': '300',
-                'fontSize': '2.2em',
-                'marginBottom': '30px'
-            }),
-    
-    html.Div([
-        # Linke Spalte: Fakten zur Sportart
-        html.Div([
-            html.Label("🏃‍♂️ Sportart:", 
-                      style={'fontSize': '18px', 'fontWeight': '600', 'color': '#2c3e50', 'marginBottom': '10px'}),
-            dcc.Dropdown(
-                id='sportart-fakten-dropdown',
-                options=sport_options,
-                value=unique_sports_de[0],
-                clearable=False,
-                style={
-                    'width': '100%',
-                    'fontSize': '16px'
-                },
-                placeholder="Sportart auswählen..."
-            ),
-            html.Div(id='sportart-fakten-output', 
-                    style={
-                        'fontSize': '16px', 
-                        'marginTop': '25px',
-                        'background': 'rgba(255, 255, 255, 0.9)',
-                        'padding': '20px',
-                        'borderRadius': '12px',
-                        'boxShadow': '0 4px 15px rgba(0, 0, 0, 0.1)',
-                        'border': '1px solid rgba(102, 126, 234, 0.2)'
-                    }),
-        ], style={
-            'width': '48%', 
-            'display': 'inline-block', 
-            'verticalAlign': 'top',
-            'background': 'rgba(255, 255, 255, 0.7)',
-            'padding': '25px',
-            'borderRadius': '15px',
-            'boxShadow': '0 8px 25px rgba(0, 0, 0, 0.1)',
-            'backdropFilter': 'blur(10px)',
-            'border': '1px solid rgba(255, 255, 255, 0.3)'
-        }),
-        
-        # Rechte Spalte: Event-Dropdown und Fakten
-        html.Div([
-            html.Label("🏅 Event (Spiele & Stadt):", 
-                      style={'fontSize': '18px', 'fontWeight': '600', 'color': '#2c3e50', 'marginBottom': '10px'}),
-            dcc.Dropdown(
-                id='event-dropdown',
-                options=[],
-                value=None,
-                clearable=False,
-                style={
-                    'width': '100%',
-                    'fontSize': '16px'
-                },
-                placeholder="Event auswählen..."
-            ),
-            html.Div(id='event-fakten-output', 
-                    style={
-                        'fontSize': '16px', 
-                        'marginTop': '25px',
-                        'background': 'rgba(255, 255, 255, 0.9)',
-                        'padding': '20px',
-                        'borderRadius': '12px',
-                        'boxShadow': '0 4px 15px rgba(0, 0, 0, 0.1)',
-                        'border': '1px solid rgba(102, 126, 234, 0.2)'
-                    }),
-        ], style={
-            'width': '48%', 
-            'display': 'inline-block', 
-            'marginLeft': '4%', 
-            'verticalAlign': 'top',
-            'background': 'rgba(255, 255, 255, 0.7)',
-            'padding': '25px',
-            'borderRadius': '15px',
-            'boxShadow': '0 8px 25px rgba(0, 0, 0, 0.1)',
-            'backdropFilter': 'blur(10px)',
-            'border': '1px solid rgba(255, 255, 255, 0.3)'
-        }),
-    ], style={
-        'width': '100%', 
-        'display': 'flex',
-        'gap': '20px',
-        'marginBottom': '40px'
-    }),
-
-# Event-Dropdown aktualisieren
-@app.callback(
-    Output('event-dropdown', 'options'),
-    Output('event-dropdown', 'value'),
-    Input('sportart-fakten-dropdown', 'value')
-)
-def update_event_dropdown(sport):
-    if not sport:
-        return [], None
-    options = get_event_options(sport)
-    return options, options[0]['value'] if options else None
-
-# Fakten zur Sportart immer anzeigen
-@app.callback(
-    Output('sportart-fakten-output', 'children'),
-    Input('sportart-fakten-dropdown', 'value')
-)
-def sportart_fakten(sportart):
-    if not sportart:
-        return html.Div("Bitte wählen Sie eine Sportart aus.", 
-                       style={'textAlign': 'center', 'color': '#7f8c8d', 'fontStyle': 'italic'})
-    
-    df = athlete_events[athlete_events['sport'] == sportart]
+def sportart_fakten(sportart_de, season):
+    if sportart_de == 'Alle':
+        return html.Div("Bitte eine konkrete Sportart auswählen.")
+    sport_en = sport_de_to_en(sportart_de)
+    df = athlete_events[(athlete_events['sport'] == sport_en) & (athlete_events['season'] == season)]
     if df.empty:
-        return html.Div("Keine Daten für diese Sportart verfügbar.", 
-                       style={'textAlign': 'center', 'color': '#e74c3c'})
-    
-    # Berechnungen
+        return html.Div("Keine Daten für diese Kombination.")
     austragungen = df['year'].nunique()
     first_year = df['year'].min()
     last_year = df['year'].max()
-    
     teilnahmen_athlet = df.groupby('name').size()
     if not teilnahmen_athlet.empty:
         top_athlet = teilnahmen_athlet.idxmax()
@@ -580,161 +466,78 @@ def sportart_fakten(sportart):
     else:
         top_athlet = "Keine Daten"
         top_athlet_count = 0
-    
     teilnahmen_land = df.groupby('region').size()
     if not teilnahmen_land.empty:
-        top_land = teilnahmen_land.idxmax()
+        top_land_en = teilnahmen_land.idxmax()
+        top_land = country_translation.get(top_land_en, top_land_en)
         top_land_count = teilnahmen_land.max()
     else:
         top_land = "Keine Daten"
         top_land_count = 0
-    
     unique_athletes = df['name'].nunique()
     unique_countries = df['region'].nunique()
-    
     if 'event' in df.columns:
         top_event = df['event'].value_counts().idxmax()
         top_event_count = df['event'].value_counts().max()
     else:
         top_event = "Keine Daten"
         top_event_count = 0
-    
+
     return html.Div([
-        html.H4(f"📊 {sportart}", 
-               style={'color': '#2c3e50', 'marginBottom': '20px', 'fontSize': '1.4em'}),
-        html.Div([
-            html.Div([
-                html.Span("🗓️ ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Olympische Spiele: {austragungen} ({first_year}–{last_year})")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
-            
-            html.Div([
-                html.Span("🏃‍♂️ ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Top-Athlet: {top_athlet} ({top_athlet_count} Teilnahmen)")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
-            
-            html.Div([
-                html.Span("🌍 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Top-Land: {top_land} ({top_land_count} Teilnahmen)")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
-            
-            html.Div([
-                html.Span("👥 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Verschiedene Athleten: {unique_athletes:,}")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
-            
-            html.Div([
-                html.Span("🏁 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Teilnehmende Länder: {unique_countries}")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
-            
-            html.Div([
-                html.Span("🎯 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Häufigste Disziplin: {top_event} ({top_event_count} Teilnahmen)")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(102, 126, 234, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #667eea'}),
+        html.H4(f"Fakten zur Sportart: {sportart_de} ({season})"),
+        html.Ul([
+            html.Li(f"Anzahl der Olympischen Spiele mit {sportart_de}: {austragungen} ({first_year}–{last_year})"),
+            html.Li(f"Meistteilnehmender Sportler: {top_athlet} ({top_athlet_count} Teilnahmen)"),
+            html.Li(f"Land mit den meisten Teilnahmen: {top_land} ({top_land_count} Teilnahmen)"),
+            html.Li(f"Anzahl verschiedener Athleten: {unique_athletes}"),
+            html.Li(f"Anzahl teilnehmender Länder: {unique_countries}"),
+            html.Li(f"Häufigste Disziplin: {top_event} ({top_event_count} Teilnahmen)")
         ])
     ])
-
-# Fakten zum Event (Games + City) immer anzeigen
 @app.callback(
-    Output('event-fakten-output', 'children'),
-    Input('event-dropdown', 'value'),
-    Input('sportart-fakten-dropdown', 'value')
+    Output('olympiade-fakten-output', 'children'),
+    Input('olympiade-jahr-dropdown', 'value'),
+    Input('season-dropdown', 'value')
 )
-def event_fakten(event_value, sportart):
-    if not event_value or not sportart:
-        return html.Div("Bitte wählen Sie eine Sportart und ein Event aus.", 
-                       style={'textAlign': 'center', 'color': '#7f8c8d', 'fontStyle': 'italic'})
-    
-    games, city = event_value.split("||")
-    df = athlete_events[(athlete_events['sport'] == sportart) & 
-                       (athlete_events['Games'] == games) & 
-                       (athlete_events['City'] == city)]
+def olympiade_fakten(jahr, season):
+    df = athlete_events[(athlete_events['year'] == jahr) & (athlete_events['season'] == season)]
     
     if df.empty:
-        return html.Div("Keine Daten für dieses Event verfügbar.", 
-                       style={'textAlign': 'center', 'color': '#e74c3c'})
-    
-    # Berechnungen
-    teilnehmer = df['name'].nunique()
-    
-    medals = df[df['medal'].notna()].groupby('name').size()
-    if not medals.empty:
-        top_medalist = medals.idxmax()
-        top_medalist_count = medals.max()
+        return html.Div("Keine Daten für diese Olympiade.")
+
+    n_sportarten = df['sport'].nunique()
+    n_events = df['event'].nunique()
+    n_athleten = df['name'].nunique()
+
+    teilnahmen_land = df['region'].value_counts()
+    top_land = teilnahmen_land.idxmax()
+    top_land_de = country_translation.get(top_land, top_land)
+    top_land_count = teilnahmen_land.max()
+
+    medal_df = df[df['medal'].notna()]
+    if not medal_df.empty:
+        erfolgreichstes_land = medal_df['region'].value_counts().idxmax()
+        erfolgreichstes_land_de = country_translation.get(erfolgreichstes_land, erfolgreichstes_land)
+        erfolgreichstes_land_medals = medal_df['region'].value_counts().max()
+        häufigste_medaille = medal_df['medal'].value_counts().idxmax()
     else:
-        top_medalist = "Keine Daten"
-        top_medalist_count = 0
-    
-    # Größe
-    if df['height'].notna().any():
-        groesster = df.loc[df['height'].idxmax()]
-        groesster_name = groesster['name']
-        groesster_value = groesster['height']
-    else:
-        groesster_name = "Keine Daten"
-        groesster_value = "?"
-    
-    if df['height'].notna().any():
-        kleinster = df.loc[df['height'].idxmin()]
-        kleinster_name = kleinster['name']
-        kleinster_value = kleinster['height']
-    else:
-        kleinster_name = "Keine Daten"
-        kleinster_value = "?"
-    
-    # Alter
-    if df['age'].notna().any():
-        aeltester = df.loc[df['age'].idxmax()]
-        aeltester_name = aeltester['name']
-        aeltester_value = aeltester['age']
-    else:
-        aeltester_name = "Keine Daten"
-        aeltester_value = "?"
-    
-    if df['age'].notna().any():
-        juengster = df.loc[df['age'].idxmin()]
-        juengster_name = juengster['name']
-        juengster_value = juengster['age']
-    else:
-        juengster_name = "Keine Daten"
-        juengster_value = "?"
+        erfolgreichstes_land_de = "Keine Daten"
+        erfolgreichstes_land_medals = 0
+        häufigste_medaille = "Keine Medaillen"
 
     return html.Div([
-        html.H4(f"🏅 {games} ({city})", 
-               style={'color': '#2c3e50', 'marginBottom': '20px', 'fontSize': '1.4em'}),
-        html.Div([
-            html.Div([
-                html.Span("👥 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Teilnehmer: {teilnehmer:,} Athleten")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
-            
-            html.Div([
-                html.Span("🏆 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Meiste Medaillen: {top_medalist} ({top_medalist_count})")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
-            
-            html.Div([
-                html.Span("📏 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Größter: {groesster_name} ({groesster_value} cm)")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
-            
-            html.Div([
-                html.Span("📐 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Kleinster: {kleinster_name} ({kleinster_value} cm)")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
-            
-            html.Div([
-                html.Span("👴 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Ältester: {aeltester_name} ({aeltester_value} Jahre)")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
-            
-            html.Div([
-                html.Span("👶 ", style={'fontSize': '1.2em', 'marginRight': '8px'}),
-                html.Span(f"Jüngster: {juengster_name} ({juengster_value} Jahre)")
-            ], style={'marginBottom': '12px', 'padding': '10px', 'background': 'rgba(118, 75, 162, 0.1)', 'borderRadius': '8px', 'borderLeft': '4px solid #764ba2'}),
+        html.H4(f"Fakten zu den Olympischen Spielen {jahr} ({season})"),
+        html.Ul([
+            html.Li(f"Anzahl Sportarten: {n_sportarten}"),
+            html.Li(f"Anzahl Disziplinen (Events): {n_events}"),
+            html.Li(f"Anzahl Athletinnen und Athleten: {n_athleten}"),
+            html.Li(f"Land mit den meisten Teilnahmen: {top_land_de} ({top_land_count})"),
+            html.Li(f"Erfolgreichstes Land: {erfolgreichstes_land_de} ({erfolgreichstes_land_medals} Medaillen)"),
+            html.Li(f"Häufigste Medaille: {häufigste_medaille}")
         ])
     ])
+
+
 
 if __name__ == '__main__':
     app.run_server(debug=True, host='0.0.0.0', port=8050)
